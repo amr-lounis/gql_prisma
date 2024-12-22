@@ -1,0 +1,213 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  //provider = "mysql"
+  //url      = "mysql://root@localhost:3306/la_msi"
+  provider = "sqlite"
+  url      = "file:../database.sqlite"
+}
+
+// **************************************************************************************************** 
+
+model users {
+  id          String     @id
+  // 
+  role        u_roles?   @relation(fields: [roleId], references: [id])
+  roleId      String?
+  // 
+  t_employee  todos[]    @relation("employee")
+  t_dealer    todos[]    @relation("dealer")
+  i_employee  invoices[] @relation("employee")
+  i_dealer    invoices[] @relation("dealer")
+  photo       u_photos?
+  // 
+  password    String     @default("")
+  description String     @default("")
+  address     String     @default("")
+  first_name  String     @default("")
+  last_name   String     @default("")
+  phone       String     @default("")
+  fax         String     @default("")
+  email       String     @default("")
+  createdAt   DateTime?  @default(now())
+  updatedAt   DateTime?  @updatedAt
+}
+
+model u_photos {
+  user      users     @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  userId    String    @unique
+  // 
+  photo     Bytes?
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
+}
+
+// **************************************************************************************************** 
+
+model u_roles {
+  id            String               @id
+  // 
+  user          users[]
+  authorization u_roles_operations[]
+  // 
+  createdAt     DateTime?            @default(now())
+  updatedAt     DateTime?            @updatedAt
+}
+
+model u_operations {
+  id              String               @id
+  role_operations u_roles_operations[]
+  //
+  createdAt       DateTime?            @default(now())
+  updatedAt       DateTime?            @updatedAt
+}
+
+model u_roles_operations {
+  role        u_roles?     @relation(fields: [roleId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  roleId      String
+  operation   u_operations @relation(fields: [operationId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  operationId String
+  // 
+  value       Boolean      @default(false)
+  createdAt   DateTime?    @default(now())
+  updatedAt   DateTime?    @updatedAt
+
+  @@id([roleId, operationId])
+}
+
+// **************************************************************************************************** 
+model products {
+  id               String        @id
+  // 
+  categorie        p_categories? @relation(fields: [categorieId], references: [id], onUpdate: Cascade, onDelete: SetNull)
+  categorieId      String?
+  unity            p_units?      @relation(fields: [unityId], references: [id], onUpdate: Cascade, onDelete: SetNull)
+  unityId          String?
+  // 
+  i_products       i_products[]
+  photo            p_photos?
+  // 
+  code             String        @unique @default(uuid())
+  description      String        @default("")
+  // 
+  money_purchase   Float         @default(0)
+  money_selling    Float         @default(0)
+  money_selling_gr Float         @default(0)
+  // update unly in invoice operation
+  quantity         Float         @default(0)
+  quantity_alert   Float?
+  date_alert       DateTime?
+  // auto generated
+  createdAt        DateTime?     @default(now())
+  updatedAt        DateTime?     @updatedAt
+}
+
+model p_categories {
+  id        String     @id
+  products  products[]
+  // 
+  createdAt DateTime?  @default(now())
+  updatedAt DateTime?  @updatedAt
+}
+
+model p_units {
+  id        String     @id
+  // 
+  products  products[]
+  //
+  createdAt DateTime?  @default(now())
+  updatedAt DateTime?  @updatedAt
+}
+
+model p_photos {
+  product   products  @relation(fields: [productId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  productId String    @unique
+  // 
+  photo     Bytes
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
+}
+
+// **************************************************************************************************** 
+
+model todos {
+  id             String    @id @default(uuid())
+  // 
+  employee       users?    @relation("employee", fields: [employeeId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  employeeId     String?
+  dealer         users?    @relation("dealer", fields: [dealerId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  dealerId       String?
+  // 
+  photo          t_photos?
+  // 
+  validation     Boolean   @default(false)
+  description    String    @default("")
+  money_total    Float     @default(0)
+  money_paid     Float     @default(0)
+  money_unpaid   Float     @default(0)
+  money_expenses Float     @default(0)
+  money_margin   Float     @default(0)
+  createdAt      DateTime? @default(now())
+  updatedAt      DateTime? @updatedAt
+}
+
+model t_photos {
+  todo      todos     @relation(fields: [todoId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  todoId    String    @unique
+  //
+  photo     Bytes
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
+}
+
+// **************************************************************************************************** 
+
+model settings {
+  key       String    @id
+  // 
+  value     String    @default("")
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
+}
+
+// ****************************************************************************************************  : type => {PURCHASE,SALE,LOSS}
+model invoices {
+  id           String       @id @default(uuid())
+  // 
+  employee     users?       @relation("employee", fields: [employeeId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  employeeId   String?
+  dealer       users?       @relation("dealer", fields: [dealerId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  dealerId     String?
+  // 
+  i_products   i_products[]
+  // 
+  validation   Boolean      @default(false)
+  type         String       @default("")
+  description  String       @default("")
+  money_net    Float        @default(0)
+  money_tax    Float        @default(0)
+  money_stamp  Float        @default(0)
+  money_calc   Float        @default(0)
+  money_paid   Float        @default(0)
+  money_unpaid Float        @default(0)
+  createdAt    DateTime?    @default(now())
+  updatedAt    DateTime?    @updatedAt
+}
+
+model i_products {
+  invoice     invoices  @relation(fields: [invoiceId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  invoiceId   String
+  product     products  @relation(fields: [productId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  productId   String
+  //
+  description String    @default("")
+  quantity    Float     @default(0)
+  money_unite Float     @default(0)
+  money_calc  Float     @default(0)
+  createdAt   DateTime? @default(now())
+  updatedAt   DateTime? @updatedAt
+
+  @@id([invoiceId, productId])
+}
